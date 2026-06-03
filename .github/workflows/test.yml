@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v6
         with:
           go-version: "1.25"
           cache: true
@@ -48,7 +48,7 @@ jobs:
       DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5432/stonewrit?sslmode=disable
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v6
         with:
           go-version: "1.25"
           cache: true
