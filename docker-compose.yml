@@ -23,7 +23,7 @@ services:
 
   migrate:
     build: .
-    entrypoint: ["/app/migrate", "up"]
+    entrypoint: ["/app/stonewrit", "migrate", "up"]
     environment:
       DATABASE_URL: postgres://postgres:postgres@postgres:5432/stonewrit?sslmode=disable
     depends_on:

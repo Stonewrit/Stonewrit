@@ -10,7 +10,7 @@ WHERE organization_id = $1 AND key = $2;
 -- response. This is what makes 25 parallel same-key POSTs collapse to one
 -- event instead of racing past a non-atomic SELECT.
 INSERT INTO idempotency_keys (
-  organization_id, project_id, environment_id, api_key_metadata_id,
+  organization_id, project_id, environment_id, api_key_id,
   key, request_hash, response_body, status_code, expires_at
 )
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
@@ -19,7 +19,7 @@ RETURNING id;
 
 -- name: UpsertIdempotentResponse :exec
 INSERT INTO idempotency_keys (
-  organization_id, project_id, environment_id, api_key_metadata_id,
+  organization_id, project_id, environment_id, api_key_id,
   key, request_hash, response_body, status_code, expires_at
 )
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)

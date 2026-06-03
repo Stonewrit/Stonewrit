@@ -9,6 +9,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/stonewrit/stonewrit/server/internal/bootstrap"
 	"github.com/stonewrit/stonewrit/server/internal/config"
 	"github.com/stonewrit/stonewrit/server/internal/db"
 	"github.com/stonewrit/stonewrit/server/internal/logger"
@@ -40,18 +41,31 @@ func main() {
 	log.Info().
 		Int32("pool_max", env.PoolMax).
 		Str("port", env.Port).
-		Msg("stonewrit-api-go starting")
+		Bool("auth_enabled", env.AuthEnabled).
+		Msg("stonewrit server starting")
 
 	q := queries.New(pool)
+
+	// Idempotent boot setup: seed the baseline catalog, and (when auth is off)
+	// ensure the default tenant exists so ingest needs no seeding.
+	if err := bootstrap.SeedCatalog(ctx, q); err != nil {
+		log.Fatal().Err(err).Msg("failed to seed compliance catalog")
+	}
+	if !env.AuthEnabled {
+		if err := bootstrap.EnsureDefaultTenant(ctx, q); err != nil {
+			log.Fatal().Err(err).Msg("failed to ensure default tenant")
+		}
+		log.Warn().Msg("AUTH DISABLED: every request runs under the default tenant. Set APIKEY_AUTH=true to require API keys.")
+	}
 
 	srv := &http.Server{
 		Addr: ":" + env.Port,
 		Handler: router.New(router.Deps{
-			Pool:       pool,
-			Queries:    q,
-			Log:        log,
-			ShardCount: shard.DefaultCount,
-			Billing:    env.Billing,
+			Pool:        pool,
+			Queries:     q,
+			Log:         log,
+			ShardCount:  shard.DefaultCount,
+			AuthEnabled: env.AuthEnabled,
 		}),
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       15 * time.Second,
@@ -73,10 +87,7 @@ func main() {
 		}
 	}()
 
-	// Periodic table maintenance + export builder.
-	rlCleanup := &workers.RateLimitCleanup{Q: q, Log: log}
-	go func() { _ = rlCleanup.Run(ctx) }()
-
+	// Background export builder.
 	exportWorker := &workers.GenerateExport{Pool: pool, Q: q, Log: log}
 	go func() { _ = exportWorker.Run(ctx) }()
 

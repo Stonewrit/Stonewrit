@@ -49,10 +49,10 @@ func TestSealAndVerifyPipeline(t *testing.T) {
 	envID := uuid.New()
 	shardIdx := int32(0)
 
-	// Seed tenancy directly (the dashboard owns these in production).
+	// Seed tenancy directly.
 	if _, err := pool.Exec(ctx,
-		`INSERT INTO projects (id, organization_id, name, slug, created_by_user_id)
-		 VALUES ($1, $2, 'test', $3, 'user_test')`,
+		`INSERT INTO projects (id, organization_id, name, slug)
+		 VALUES ($1, $2, 'test', $3)`,
 		projID, orgID, "proj-"+uuid.NewString()[:8]); err != nil {
 		t.Fatalf("insert project: %v", err)
 	}
@@ -96,17 +96,17 @@ func TestSealAndVerifyPipeline(t *testing.T) {
 
 	eventID := uuid.New()
 	if err := q.InsertPendingEvent(ctx, queries.InsertPendingEventParams{
-		ID:               pgtype.UUID{Bytes: eventID, Valid: true},
-		OrganizationID:   orgID,
-		ProjectID:        pgtype.UUID{Bytes: projID, Valid: true},
-		EnvironmentID:    pgtype.UUID{Bytes: envID, Valid: true},
-		ShardIndex:       shardIdx,
-		ExternalEventID:  &extID,
-		PayloadHash:      payloadHash,
-		EventData:        eventData,
-		Classification:   classificationJSON,
-		ControlMappings:  mappingsJSON,
-		ApiKeyMetadataID: pgtype.UUID{Bytes: uuid.New(), Valid: true},
+		ID:              pgtype.UUID{Bytes: eventID, Valid: true},
+		OrganizationID:  orgID,
+		ProjectID:       pgtype.UUID{Bytes: projID, Valid: true},
+		EnvironmentID:   pgtype.UUID{Bytes: envID, Valid: true},
+		ShardIndex:      shardIdx,
+		ExternalEventID: &extID,
+		PayloadHash:     payloadHash,
+		EventData:       eventData,
+		Classification:  classificationJSON,
+		ControlMappings: mappingsJSON,
+		ApiKeyID:        pgtype.UUID{Bytes: uuid.New(), Valid: true},
 	}); err != nil {
 		t.Fatalf("insert pending: %v", err)
 	}

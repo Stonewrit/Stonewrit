@@ -93,20 +93,34 @@ small:
 Sharding is an internal write-throughput detail. Auditors group chains by
 environment and verify each chain's head.
 
+## Authentication
+
+The open server is auth-optional. By default (`APIKEY_AUTH` unset) it runs under
+a single built-in default tenant that it provisions on boot, so ingest works
+with no key and no seeding. Set `APIKEY_AUTH=true` to require a bearer key on
+every request; keys are minted, listed, and revoked with the `stonewrit` CLI and
+stored as a SHA-256 digest in a single `api_keys` table. There is no dashboard,
+no users, and no organizations in the open server. `organization_id` survives
+only as a namespace string because it is part of the frozen content hash; it
+defaults to `default`.
+
 ## Migrations
 
-The open server ships its own SQL migrations for the core ingest tables it
-writes: events, chains, pending events, projects, environments, an API-key
-store, and the supporting catalog and metering tables. They are embedded in the
-binary and applied by a separate `migrate` command, never automatically on
-startup, so schema changes stay an explicit operational step. A self-hoster
-points the server at any Postgres and runs `migrate up` once.
+The server ships its own SQL migrations for the tables it owns: events, chains,
+pending events, projects, environments, the API keys table, and the supporting
+catalog tables. They are embedded in the binary and applied by the `stonewrit
+migrate` command, never automatically on startup, so schema changes stay an
+explicit operational step. On boot the server also idempotently seeds the
+baseline compliance catalog from the embedded ruleset, so events map to controls
+with no manual seeding. A self-hoster points the server at any Postgres and runs
+`stonewrit migrate up` once.
 
 ## Open and hosted
 
-The open server is a complete ingest data plane: validate, classify with the
-baseline ruleset, seal, and chain. The hosted product wraps it with the
-commercial concerns that are a service rather than a mechanism:
+The open server is a complete, self-hostable ingest data plane: validate,
+classify with the baseline ruleset, seal, and chain. It carries no billing,
+metering, subscriptions, users, or organizations. The hosted product wraps it
+with the commercial concerns that are a service rather than a mechanism:
 
 - Neutral witnessing and anchoring. A fully self-hosted log is one its operator
   could alter; periodically publishing signed chain heads to an external
@@ -114,4 +128,4 @@ commercial concerns that are a service rather than a mechanism:
   anchoring hook with a no-op default; the hosted deployment supplies the real
   implementation.
 - Maintained premium rulesets, kept current and attested as regulations move.
-- The dashboard, management API, billing and metering, and SSO.
+- The multi-tenant dashboard, management API, billing and metering, and SSO.

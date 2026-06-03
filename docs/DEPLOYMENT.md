@@ -7,7 +7,7 @@ the shared state.
 ## Build
 
 A multi-stage Dockerfile is included and produces a small, non-root image with
-the server and the migrate binary:
+the `server` and the `stonewrit` management binary:
 
 ```
 docker build -t stonewrit/server .
@@ -23,23 +23,36 @@ The server reads configuration from the environment.
 | `PORT` | no | `3002` | Port the server binds to. |
 | `LOG_LEVEL` | no | `info` | `debug`, `info`, `warn`, or `error`. |
 | `DATABASE_POOL_MAX` | no | `30` | Max pooled database connections. |
+| `APIKEY_AUTH` | no | `false` | When true, require an API key on every request. |
 
-Metered-overage tunables (`STARTER_INCLUDED_EVENTS`, `OVERAGE_UNIT_EVENTS`, and
-related) are optional and documented in `.env.example`.
+## Authentication
+
+By default the server runs open: it provisions a built-in default tenant on boot
+and accepts events with no key. That is convenient for local use and for running
+behind your own gateway, but an open instance accepts events from anyone, so for
+anything internet-facing set `APIKEY_AUTH=true` and mint keys with the CLI:
+
+```
+stonewrit key create --name ci      # prints a token once
+stonewrit key list
+stonewrit key revoke <id>
+```
+
+The server logs a prominent warning on boot whenever auth is disabled.
 
 ## Migrations
 
 Schema changes are an explicit step, never run automatically on startup. Apply
-them with the migrate binary before or during a deploy:
+them with the `stonewrit` CLI before or during a deploy:
 
 ```
-migrate up      # apply all pending migrations
-migrate status  # show applied and pending migrations
-migrate down    # roll back the most recent migration
+stonewrit migrate up      # apply all pending migrations
+stonewrit migrate status  # show applied and pending migrations
+stonewrit migrate down    # roll back the most recent migration
 ```
 
-In Docker, run the `migrate` binary as a one-shot before the server starts. The
-included `docker-compose.yml` shows this pattern: a `migrate` service runs to
+In Docker, run `stonewrit migrate up` as a one-shot before the server starts.
+The included `docker-compose.yml` shows this pattern: a `migrate` service runs to
 completion, and the `server` waits for it.
 
 ## Health checks

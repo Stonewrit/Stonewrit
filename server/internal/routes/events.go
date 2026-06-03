@@ -12,7 +12,6 @@ import (
 	"github.com/stonewrit/stonewrit/server/internal/auth"
 	"github.com/stonewrit/stonewrit/server/internal/httperror"
 	"github.com/stonewrit/stonewrit/server/internal/ingest"
-	"github.com/stonewrit/stonewrit/server/internal/quota"
 	"github.com/stonewrit/stonewrit/spec"
 )
 
@@ -105,12 +104,11 @@ func (h *Events) PostBatch(w http.ResponseWriter, r *http.Request) {
 		res, err := h.Ingest.Accept(r.Context(), in)
 		if err != nil {
 			rejected++
-			code, _ := classifyAcceptError(err)
 			results = append(results, spec.BatchEventResult{
 				Status: "rejected",
 				Index:  i,
 				Error: &spec.BatchEventError{
-					Code:    code,
+					Code:    "ingest_failed",
 					Message: err.Error(),
 				},
 			})
@@ -141,21 +139,7 @@ func (h *Events) PostBatch(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Events) writeAcceptError(w http.ResponseWriter, r *http.Request, err error) {
-	code, status := classifyAcceptError(err)
-	httperror.Write(w, r, status, code, err.Error())
-}
-
-func classifyAcceptError(err error) (code string, status int) {
-	switch {
-	case errors.Is(err, quota.ErrNoSubscription):
-		return "no_subscription", http.StatusPaymentRequired
-	case errors.Is(err, quota.ErrOverageLimitExceeded):
-		return "overage_limit_reached", http.StatusPaymentRequired
-	case errors.Is(err, quota.ErrQuotaExceeded):
-		return "quota_exceeded", http.StatusPaymentRequired
-	default:
-		return "ingest_failed", http.StatusInternalServerError
-	}
+	httperror.Write(w, r, http.StatusInternalServerError, "ingest_failed", err.Error())
 }
 
 func validatorDetails(err error) any {

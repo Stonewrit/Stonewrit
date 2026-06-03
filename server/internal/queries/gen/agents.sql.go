@@ -32,15 +32,10 @@ type GetAgentByExternalIDRow struct {
 	AuthorizedScopes []string    `json:"authorized_scopes"`
 }
 
-// Resolve an incoming actor.id to a registered agent WITHIN (org, project).
-// ALWAYS filtered by all three columns - the (org, project, external_id) unique
-// index is also the cross-org lookup guard. Used by the Go ingest path to
-// compute an observe-only scope_check; this never mutates the registry.
-//
-// Open-core note: agent management (CRUD) lives in the proprietary dashboard;
-// this read is the only registry touch in the Go service, mirroring how it
-// reads api_key_metadata. At the open-core split it sits behind the
-// scope_check resolve seam, so the open server can omit it entirely.
+// Resolve an incoming actor.id to a registered agent within (org, project),
+// filtered by all three columns. Used at ingest to compute an observe-only
+// scope_check; it never mutates the registry. The agents table is empty by
+// default and optional, so a missing row is normal and never an error.
 func (q *Queries) GetAgentByExternalID(ctx context.Context, arg GetAgentByExternalIDParams) (GetAgentByExternalIDRow, error) {
 	row := q.db.QueryRow(ctx, getAgentByExternalID, arg.OrganizationID, arg.ProjectID, arg.ExternalID)
 	var i GetAgentByExternalIDRow

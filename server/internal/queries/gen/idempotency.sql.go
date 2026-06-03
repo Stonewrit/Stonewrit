@@ -13,7 +13,7 @@ import (
 
 const claimIdempotencyKey = `-- name: ClaimIdempotencyKey :one
 INSERT INTO idempotency_keys (
-  organization_id, project_id, environment_id, api_key_metadata_id,
+  organization_id, project_id, environment_id, api_key_id,
   key, request_hash, response_body, status_code, expires_at
 )
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
@@ -22,15 +22,15 @@ RETURNING id
 `
 
 type ClaimIdempotencyKeyParams struct {
-	OrganizationID   string             `json:"organization_id"`
-	ProjectID        pgtype.UUID        `json:"project_id"`
-	EnvironmentID    pgtype.UUID        `json:"environment_id"`
-	ApiKeyMetadataID pgtype.UUID        `json:"api_key_metadata_id"`
-	Key              string             `json:"key"`
-	RequestHash      string             `json:"request_hash"`
-	ResponseBody     []byte             `json:"response_body"`
-	StatusCode       *int32             `json:"status_code"`
-	ExpiresAt        pgtype.Timestamptz `json:"expires_at"`
+	OrganizationID string             `json:"organization_id"`
+	ProjectID      pgtype.UUID        `json:"project_id"`
+	EnvironmentID  pgtype.UUID        `json:"environment_id"`
+	ApiKeyID       pgtype.UUID        `json:"api_key_id"`
+	Key            string             `json:"key"`
+	RequestHash    string             `json:"request_hash"`
+	ResponseBody   []byte             `json:"response_body"`
+	StatusCode     *int32             `json:"status_code"`
+	ExpiresAt      pgtype.Timestamptz `json:"expires_at"`
 }
 
 // Atomic idempotency gate. The FIRST request for (org, key) inserts and gets
@@ -43,7 +43,7 @@ func (q *Queries) ClaimIdempotencyKey(ctx context.Context, arg ClaimIdempotencyK
 		arg.OrganizationID,
 		arg.ProjectID,
 		arg.EnvironmentID,
-		arg.ApiKeyMetadataID,
+		arg.ApiKeyID,
 		arg.Key,
 		arg.RequestHash,
 		arg.ResponseBody,
@@ -89,7 +89,7 @@ func (q *Queries) GetIdempotentResponse(ctx context.Context, arg GetIdempotentRe
 
 const upsertIdempotentResponse = `-- name: UpsertIdempotentResponse :exec
 INSERT INTO idempotency_keys (
-  organization_id, project_id, environment_id, api_key_metadata_id,
+  organization_id, project_id, environment_id, api_key_id,
   key, request_hash, response_body, status_code, expires_at
 )
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
@@ -100,15 +100,15 @@ ON CONFLICT (organization_id, key) DO UPDATE SET
 `
 
 type UpsertIdempotentResponseParams struct {
-	OrganizationID   string             `json:"organization_id"`
-	ProjectID        pgtype.UUID        `json:"project_id"`
-	EnvironmentID    pgtype.UUID        `json:"environment_id"`
-	ApiKeyMetadataID pgtype.UUID        `json:"api_key_metadata_id"`
-	Key              string             `json:"key"`
-	RequestHash      string             `json:"request_hash"`
-	ResponseBody     []byte             `json:"response_body"`
-	StatusCode       *int32             `json:"status_code"`
-	ExpiresAt        pgtype.Timestamptz `json:"expires_at"`
+	OrganizationID string             `json:"organization_id"`
+	ProjectID      pgtype.UUID        `json:"project_id"`
+	EnvironmentID  pgtype.UUID        `json:"environment_id"`
+	ApiKeyID       pgtype.UUID        `json:"api_key_id"`
+	Key            string             `json:"key"`
+	RequestHash    string             `json:"request_hash"`
+	ResponseBody   []byte             `json:"response_body"`
+	StatusCode     *int32             `json:"status_code"`
+	ExpiresAt      pgtype.Timestamptz `json:"expires_at"`
 }
 
 func (q *Queries) UpsertIdempotentResponse(ctx context.Context, arg UpsertIdempotentResponseParams) error {
@@ -116,7 +116,7 @@ func (q *Queries) UpsertIdempotentResponse(ctx context.Context, arg UpsertIdempo
 		arg.OrganizationID,
 		arg.ProjectID,
 		arg.EnvironmentID,
-		arg.ApiKeyMetadataID,
+		arg.ApiKeyID,
 		arg.Key,
 		arg.RequestHash,
 		arg.ResponseBody,

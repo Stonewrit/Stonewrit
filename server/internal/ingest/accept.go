@@ -5,9 +5,9 @@
 // return 202 with a content-hash receipt. The sealer worker later drains
 // pending into events and computes the chain hash.
 //
-// Target: under 2ms p99 for the accept call, single Postgres round-trip
-// in the steady state (one INSERT into pending_events, plus a cached
-// quota+tier check and a cached idempotency lookup).
+// Target: under 2ms p99 for the accept call, a single Postgres round-trip in
+// the steady state (one INSERT into pending_events, plus a cached idempotency
+// lookup).
 package ingest
 
 import (
@@ -26,7 +26,6 @@ import (
 	"github.com/stonewrit/stonewrit/core"
 	"github.com/stonewrit/stonewrit/server/internal/auth"
 	queries "github.com/stonewrit/stonewrit/server/internal/queries/gen"
-	"github.com/stonewrit/stonewrit/server/internal/quota"
 	"github.com/stonewrit/stonewrit/server/internal/resolvecontrols"
 	"github.com/stonewrit/stonewrit/server/internal/shard"
 	"github.com/stonewrit/stonewrit/spec"
@@ -34,7 +33,6 @@ import (
 
 type Service struct {
 	Q          *queries.Queries
-	Quota      *quota.Enforcer
 	ShardCount int
 }
 
@@ -63,10 +61,6 @@ type AcceptResult struct {
 // Accept is the hot path. Returns a Cached result if the idempotency key
 // is recognized; otherwise classifies, hashes, persists to pending_events.
 func (s *Service) Accept(ctx context.Context, in AcceptInput) (*AcceptResult, error) {
-	if err := s.Quota.CheckAndIncrement(ctx, in.Auth.OrganizationID, 1); err != nil {
-		return nil, err
-	}
-
 	// Route by external_event_id when present so two events sharing one (a
 	// client retry) ALWAYS land on the same shard - the sealer's per-shard
 	// dedup then catches the duplicate before the COPY. Routing duplicates to
@@ -145,7 +139,7 @@ func (s *Service) Accept(ctx context.Context, in AcceptInput) (*AcceptResult, er
 	if err != nil {
 		return nil, fmt.Errorf("parse env uuid: %w", err)
 	}
-	apiKeyUUID, err := parsePgUUID(in.Auth.APIKeyMetadataID)
+	apiKeyUUID, err := parsePgUUID(in.Auth.APIKeyID)
 	if err != nil {
 		return nil, fmt.Errorf("parse api key uuid: %w", err)
 	}
@@ -193,15 +187,15 @@ func (s *Service) Accept(ctx context.Context, in AcceptInput) (*AcceptResult, er
 		expires := time.Now().Add(24 * time.Hour)
 
 		_, claimErr := s.Q.ClaimIdempotencyKey(ctx, queries.ClaimIdempotencyKeyParams{
-			OrganizationID:   in.Auth.OrganizationID,
-			ProjectID:        projectUUID,
-			EnvironmentID:    envUUID,
-			ApiKeyMetadataID: apiKeyUUID,
-			Key:              in.IdempotencyKey,
-			RequestHash:      requestHash,
-			ResponseBody:     body,
-			StatusCode:       &statusInt32,
-			ExpiresAt:        pgtype.Timestamptz{Time: expires, Valid: true},
+			OrganizationID: in.Auth.OrganizationID,
+			ProjectID:      projectUUID,
+			EnvironmentID:  envUUID,
+			ApiKeyID:       apiKeyUUID,
+			Key:            in.IdempotencyKey,
+			RequestHash:    requestHash,
+			ResponseBody:   body,
+			StatusCode:     &statusInt32,
+			ExpiresAt:      pgtype.Timestamptz{Time: expires, Valid: true},
 		})
 		if errors.Is(claimErr, pgx.ErrNoRows) {
 			// Lost the race (or a genuine replay): the winner already wrote
@@ -226,19 +220,19 @@ func (s *Service) Accept(ctx context.Context, in AcceptInput) (*AcceptResult, er
 	}
 
 	if err := s.Q.InsertPendingEvent(ctx, queries.InsertPendingEventParams{
-		ID:               pgtype.UUID{Bytes: eventID, Valid: true},
-		OrganizationID:   in.Auth.OrganizationID,
-		ProjectID:        projectUUID,
-		EnvironmentID:    envUUID,
-		ShardIndex:       int32(shardIdx),
-		ExternalEventID:  nullableText(in.Event.ExternalEventID),
-		PayloadHash:      payloadHash,
-		EventData:        eventDataJSON,
-		Classification:   classificationJSON,
-		ControlMappings:  mappingsJSON,
-		ScopeCheck:       scopeCheckJSON,
-		ApiKeyMetadataID: apiKeyUUID,
-		IdempotencyKey:   nullableText(in.IdempotencyKey),
+		ID:              pgtype.UUID{Bytes: eventID, Valid: true},
+		OrganizationID:  in.Auth.OrganizationID,
+		ProjectID:       projectUUID,
+		EnvironmentID:   envUUID,
+		ShardIndex:      int32(shardIdx),
+		ExternalEventID: nullableText(in.Event.ExternalEventID),
+		PayloadHash:     payloadHash,
+		EventData:       eventDataJSON,
+		Classification:  classificationJSON,
+		ControlMappings: mappingsJSON,
+		ScopeCheck:      scopeCheckJSON,
+		ApiKeyID:        apiKeyUUID,
+		IdempotencyKey:  nullableText(in.IdempotencyKey),
 	}); err != nil {
 		return nil, fmt.Errorf("insert pending: %w", err)
 	}

@@ -10,6 +10,10 @@ mechanism that makes an audit log tamper-evident is open and runnable: the
 canonicalization, the hashing, the chain linkage, the verifier, the event spec,
 and the baseline classifier. You can recompute every hash yourself.
 
+Want it managed, with neutral third-party witnessing, maintained compliance
+rulesets, and a dashboard? That is the hosted version at
+[stonewrit.com](https://stonewrit.com).
+
 [![test](https://github.com/stonewrit/stonewrit/actions/workflows/test.yml/badge.svg)](https://github.com/stonewrit/stonewrit/actions/workflows/test.yml)
 [![license](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
 
@@ -57,28 +61,64 @@ binaries are published as `stonewrit-verify` for Linux, macOS, and Windows.
 
 ### Run the server
 
-The fastest path is the local stack, which starts Postgres, applies migrations,
-and runs the server:
+The server is a single binary plus Postgres. It runs open by default (no auth,
+no seeding) so you can ingest immediately. Point it at any Postgres, migrate,
+and run:
+
+```
+cp .env.example .env          # set DATABASE_URL
+go run ./server/cmd/stonewrit migrate up    # create the schema
+go run ./server/cmd/server                  # start on :3002
+```
+
+Send an event and verify it, with no API key:
+
+```
+curl -X POST localhost:3002/api/v1/events -H 'Content-Type: application/json' -d '{
+  "event_type": "data.accessed",
+  "occurred_at": "2026-01-01T00:00:00.000Z",
+  "source":   {"system": "billing", "service": "api"},
+  "actor":    {"type": "human", "id": "u_123"},
+  "action":   {"name": "read", "category": "data", "result": "allowed"},
+  "resource": {"type": "invoice", "id": "inv_42"}
+}'
+# -> 202 with an "id"; then:
+curl localhost:3002/api/v1/events/<id>/verify   # -> "valid": true
+```
+
+Or run the whole stack (Postgres, migrations, server) with Docker:
 
 ```
 docker compose up --build
 ```
 
-Or run it against your own Postgres:
-
-```
-cp .env.example .env          # set DATABASE_URL
-make migrate                  # create the schema
-make run                      # start the server on :3002
-```
-
 Health endpoints: `/health`, `/ready`, `/dbping`.
+
+### Turning on authentication
+
+For anything internet-facing, set `APIKEY_AUTH=true` and mint a key with the
+CLI. No dashboard, no seeding:
+
+```
+go run ./server/cmd/stonewrit key create --name ci   # prints a token once
+```
+
+Then send the token as a bearer credential:
+
+```
+curl -X POST localhost:3002/api/v1/events \
+  -H "Authorization: Bearer sk_..." -H 'Content-Type: application/json' -d '{ ... }'
+```
+
+The CLI also manages projects and environments (`stonewrit project create`,
+`stonewrit environment create`, `stonewrit key list|revoke`).
 
 ## Open core
 
-Everything in this repository is Apache 2.0. The open project is the trust
-mechanism and a self-hostable ingest server. The hosted product adds the parts
-that are a service rather than a mechanism:
+Everything in this repository is Apache 2.0 and fully self-hostable. There are no
+users, organizations, subscriptions, or billing here; it is an open server. The
+[hosted version](https://stonewrit.com) adds the parts that are a service rather
+than a mechanism:
 
 - Neutral, third-party witnessing that anchors chain heads, so a log's operator
   cannot quietly rewrite their own history.

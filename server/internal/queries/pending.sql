@@ -3,7 +3,7 @@
 INSERT INTO pending_events (
   id, organization_id, project_id, environment_id, shard_index,
   external_event_id, payload_hash, event_data, classification,
-  control_mappings, scope_check, api_key_metadata_id, idempotency_key
+  control_mappings, scope_check, api_key_id, idempotency_key
 )
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13);
 
@@ -14,7 +14,7 @@ VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13);
 SELECT
   id, organization_id, project_id, environment_id, shard_index,
   external_event_id, payload_hash, event_data, classification,
-  control_mappings, api_key_metadata_id, idempotency_key, accepted_at, scope_check
+  control_mappings, api_key_id, idempotency_key, accepted_at, scope_check
 FROM pending_events
 WHERE environment_id = $1 AND shard_index = $2
 ORDER BY accepted_at ASC, id ASC
@@ -28,7 +28,7 @@ WHERE id = ANY($1::uuid[]);
 SELECT
   id, organization_id, project_id, environment_id, shard_index,
   external_event_id, payload_hash, event_data, classification,
-  control_mappings, api_key_metadata_id, idempotency_key, accepted_at, scope_check
+  control_mappings, api_key_id, idempotency_key, accepted_at, scope_check
 FROM pending_events
 WHERE id = $1 AND organization_id = $2;
 

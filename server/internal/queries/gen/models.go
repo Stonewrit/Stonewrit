@@ -13,59 +13,23 @@ type Agent struct {
 	OrganizationID   string             `json:"organization_id"`
 	ProjectID        pgtype.UUID        `json:"project_id"`
 	Name             string             `json:"name"`
-	Description      *string            `json:"description"`
-	Model            string             `json:"model"`
 	ExternalID       string             `json:"external_id"`
-	OwnerUserID      string             `json:"owner_user_id"`
-	SupervisorUserID *string            `json:"supervisor_user_id"`
 	AuthorizedScopes []string           `json:"authorized_scopes"`
 	Status           string             `json:"status"`
 	CreatedAt        pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt        pgtype.Timestamptz `json:"updated_at"`
 }
 
-type ApiKeyMetadatum struct {
-	ID              pgtype.UUID        `json:"id"`
-	BetterAuthKeyID string             `json:"better_auth_key_id"`
-	OrganizationID  string             `json:"organization_id"`
-	ProjectID       pgtype.UUID        `json:"project_id"`
-	EnvironmentID   pgtype.UUID        `json:"environment_id"`
-	Name            string             `json:"name"`
-	Prefix          *string            `json:"prefix"`
-	Scopes          []string           `json:"scopes"`
-	CreatedByUserID string             `json:"created_by_user_id"`
-	LastUsedAt      pgtype.Timestamptz `json:"last_used_at"`
-	RevokedAt       pgtype.Timestamptz `json:"revoked_at"`
-	ExpiresAt       pgtype.Timestamptz `json:"expires_at"`
-	IpAllowlist     []byte             `json:"ip_allowlist"`
-	Metadata        []byte             `json:"metadata"`
-	CreatedAt       pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt       pgtype.Timestamptz `json:"updated_at"`
-}
-
-type Apikey struct {
-	ID                  string           `json:"id"`
-	ConfigID            string           `json:"config_id"`
-	Name                *string          `json:"name"`
-	Start               *string          `json:"start"`
-	ReferenceID         string           `json:"reference_id"`
-	Prefix              *string          `json:"prefix"`
-	Key                 string           `json:"key"`
-	RefillInterval      *int32           `json:"refill_interval"`
-	RefillAmount        *int32           `json:"refill_amount"`
-	LastRefillAt        pgtype.Timestamp `json:"last_refill_at"`
-	Enabled             *bool            `json:"enabled"`
-	RateLimitEnabled    *bool            `json:"rate_limit_enabled"`
-	RateLimitTimeWindow *int32           `json:"rate_limit_time_window"`
-	RateLimitMax        *int32           `json:"rate_limit_max"`
-	RequestCount        *int32           `json:"request_count"`
-	Remaining           *int32           `json:"remaining"`
-	LastRequest         pgtype.Timestamp `json:"last_request"`
-	ExpiresAt           pgtype.Timestamp `json:"expires_at"`
-	CreatedAt           pgtype.Timestamp `json:"created_at"`
-	UpdatedAt           pgtype.Timestamp `json:"updated_at"`
-	Permissions         *string          `json:"permissions"`
-	Metadata            *string          `json:"metadata"`
+type ApiKey struct {
+	ID             pgtype.UUID        `json:"id"`
+	KeyHash        string             `json:"key_hash"`
+	Name           string             `json:"name"`
+	OrganizationID string             `json:"organization_id"`
+	ProjectID      pgtype.UUID        `json:"project_id"`
+	EnvironmentID  pgtype.UUID        `json:"environment_id"`
+	Scopes         []string           `json:"scopes"`
+	CreatedAt      pgtype.Timestamptz `json:"created_at"`
+	RevokedAt      pgtype.Timestamptz `json:"revoked_at"`
 }
 
 type Chain struct {
@@ -195,9 +159,6 @@ type EventControlMapping struct {
 	MappedBy       string             `json:"mapped_by"`
 	CreatedAt      pgtype.Timestamptz `json:"created_at"`
 	Status         string             `json:"status"`
-	ReviewerUserID *string            `json:"reviewer_user_id"`
-	ReviewedAt     pgtype.Timestamptz `json:"reviewed_at"`
-	ReviewerNote   *string            `json:"reviewer_note"`
 }
 
 type EvidenceExport struct {
@@ -205,7 +166,6 @@ type EvidenceExport struct {
 	OrganizationID    string             `json:"organization_id"`
 	ProjectID         pgtype.UUID        `json:"project_id"`
 	EnvironmentID     pgtype.UUID        `json:"environment_id"`
-	CreatedByUserID   string             `json:"created_by_user_id"`
 	Type              string             `json:"type"`
 	Framework         *string            `json:"framework"`
 	PeriodFrom        pgtype.Timestamptz `json:"period_from"`
@@ -237,7 +197,6 @@ type Exception struct {
 	Description     *string            `json:"description"`
 	Severity        string             `json:"severity"`
 	Status          string             `json:"status"`
-	OwnerUserID     *string            `json:"owner_user_id"`
 	OpenedAt        pgtype.Timestamptz `json:"opened_at"`
 	ExpiresAt       pgtype.Timestamptz `json:"expires_at"`
 	ResolvedAt      pgtype.Timestamptz `json:"resolved_at"`
@@ -256,89 +215,43 @@ type Framework struct {
 }
 
 type IdempotencyKey struct {
-	ID               pgtype.UUID        `json:"id"`
-	OrganizationID   string             `json:"organization_id"`
-	ProjectID        pgtype.UUID        `json:"project_id"`
-	EnvironmentID    pgtype.UUID        `json:"environment_id"`
-	ApiKeyMetadataID pgtype.UUID        `json:"api_key_metadata_id"`
-	Key              string             `json:"key"`
-	RequestHash      string             `json:"request_hash"`
-	ResponseBody     []byte             `json:"response_body"`
-	StatusCode       *int32             `json:"status_code"`
-	CreatedAt        pgtype.Timestamptz `json:"created_at"`
-	ExpiresAt        pgtype.Timestamptz `json:"expires_at"`
-}
-
-type OrgBillingState struct {
-	OrganizationID       string             `json:"organization_id"`
-	OverageLimitCents    *int32             `json:"overage_limit_cents"`
-	OverageLimitDisabled bool               `json:"overage_limit_disabled"`
-	ReportedEventCount   int64              `json:"reported_event_count"`
-	NotifiedThreshold    int32              `json:"notified_threshold"`
-	PeriodStart          pgtype.Timestamptz `json:"period_start"`
-	UpdatedAt            pgtype.Timestamptz `json:"updated_at"`
-}
-
-type OrgUsageCounter struct {
+	ID             pgtype.UUID        `json:"id"`
 	OrganizationID string             `json:"organization_id"`
-	PeriodStart    pgtype.Timestamptz `json:"period_start"`
-	AcceptedCount  int64              `json:"accepted_count"`
-	UpdatedAt      pgtype.Timestamptz `json:"updated_at"`
+	ProjectID      pgtype.UUID        `json:"project_id"`
+	EnvironmentID  pgtype.UUID        `json:"environment_id"`
+	ApiKeyID       pgtype.UUID        `json:"api_key_id"`
+	Key            string             `json:"key"`
+	RequestHash    string             `json:"request_hash"`
+	ResponseBody   []byte             `json:"response_body"`
+	StatusCode     *int32             `json:"status_code"`
+	CreatedAt      pgtype.Timestamptz `json:"created_at"`
+	ExpiresAt      pgtype.Timestamptz `json:"expires_at"`
 }
 
 type PendingEvent struct {
-	ID               pgtype.UUID        `json:"id"`
-	OrganizationID   string             `json:"organization_id"`
-	ProjectID        pgtype.UUID        `json:"project_id"`
-	EnvironmentID    pgtype.UUID        `json:"environment_id"`
-	ShardIndex       int32              `json:"shard_index"`
-	ExternalEventID  *string            `json:"external_event_id"`
-	PayloadHash      string             `json:"payload_hash"`
-	EventData        []byte             `json:"event_data"`
-	Classification   []byte             `json:"classification"`
-	ControlMappings  []byte             `json:"control_mappings"`
-	ApiKeyMetadataID pgtype.UUID        `json:"api_key_metadata_id"`
-	IdempotencyKey   *string            `json:"idempotency_key"`
-	AcceptedAt       pgtype.Timestamptz `json:"accepted_at"`
-	ScopeCheck       []byte             `json:"scope_check"`
+	ID              pgtype.UUID        `json:"id"`
+	OrganizationID  string             `json:"organization_id"`
+	ProjectID       pgtype.UUID        `json:"project_id"`
+	EnvironmentID   pgtype.UUID        `json:"environment_id"`
+	ShardIndex      int32              `json:"shard_index"`
+	ExternalEventID *string            `json:"external_event_id"`
+	PayloadHash     string             `json:"payload_hash"`
+	EventData       []byte             `json:"event_data"`
+	Classification  []byte             `json:"classification"`
+	ControlMappings []byte             `json:"control_mappings"`
+	ApiKeyID        pgtype.UUID        `json:"api_key_id"`
+	IdempotencyKey  *string            `json:"idempotency_key"`
+	AcceptedAt      pgtype.Timestamptz `json:"accepted_at"`
+	ScopeCheck      []byte             `json:"scope_check"`
 }
 
 type Project struct {
-	ID              pgtype.UUID        `json:"id"`
-	OrganizationID  string             `json:"organization_id"`
-	Name            string             `json:"name"`
-	Slug            string             `json:"slug"`
-	Description     *string            `json:"description"`
-	CreatedByUserID string             `json:"created_by_user_id"`
-	CreatedAt       pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt       pgtype.Timestamptz `json:"updated_at"`
-	DeletedAt       pgtype.Timestamptz `json:"deleted_at"`
-}
-
-type RateLimitBucket struct {
-	ApiKeyMetadataID pgtype.UUID        `json:"api_key_metadata_id"`
-	Bucket           string             `json:"bucket"`
-	WindowStart      pgtype.Timestamptz `json:"window_start"`
-	Count            int32              `json:"count"`
-	UpdatedAt        pgtype.Timestamptz `json:"updated_at"`
-}
-
-type Subscription struct {
-	ID                   string           `json:"id"`
-	Plan                 string           `json:"plan"`
-	ReferenceID          string           `json:"reference_id"`
-	StripeCustomerID     *string          `json:"stripe_customer_id"`
-	StripeSubscriptionID *string          `json:"stripe_subscription_id"`
-	Status               string           `json:"status"`
-	PeriodStart          pgtype.Timestamp `json:"period_start"`
-	PeriodEnd            pgtype.Timestamp `json:"period_end"`
-	TrialStart           pgtype.Timestamp `json:"trial_start"`
-	TrialEnd             pgtype.Timestamp `json:"trial_end"`
-	CancelAtPeriodEnd    *bool            `json:"cancel_at_period_end"`
-	CancelAt             pgtype.Timestamp `json:"cancel_at"`
-	CanceledAt           pgtype.Timestamp `json:"canceled_at"`
-	EndedAt              pgtype.Timestamp `json:"ended_at"`
-	Seats                *int32           `json:"seats"`
-	BillingInterval      *string          `json:"billing_interval"`
-	StripeScheduleID     *string          `json:"stripe_schedule_id"`
+	ID             pgtype.UUID        `json:"id"`
+	OrganizationID string             `json:"organization_id"`
+	Name           string             `json:"name"`
+	Slug           string             `json:"slug"`
+	Description    *string            `json:"description"`
+	CreatedAt      pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt      pgtype.Timestamptz `json:"updated_at"`
+	DeletedAt      pgtype.Timestamptz `json:"deleted_at"`
 }

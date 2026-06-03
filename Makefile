@@ -10,9 +10,9 @@ help: ## List available targets
 		awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-18s\033[0m %s\n", $$1, $$2}'
 
 .PHONY: build
-build: ## Build the server, migrate, and verify binaries into ./bin
+build: ## Build the server, stonewrit CLI, and verify binaries into ./bin
 	go build -o bin/server ./server/cmd/server
-	go build -o bin/migrate ./server/cmd/migrate
+	go build -o bin/stonewrit ./server/cmd/stonewrit
 	go build -o bin/verify ./cmd/verify
 
 .PHONY: test
@@ -60,7 +60,7 @@ golden: ## Rebuild the frozen conformance vectors (only when intentionally rotat
 
 .PHONY: migrate
 migrate: ## Apply database migrations (reads DATABASE_URL)
-	go run ./server/cmd/migrate up
+	go run ./server/cmd/stonewrit migrate up
 
 .PHONY: run
 run: ## Run the server locally

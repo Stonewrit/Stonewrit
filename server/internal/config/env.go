@@ -13,22 +13,10 @@ type Env struct {
 	Port        string
 	LogLevel    string
 	PoolMax     int32
-	Billing     BillingEnv
-}
-
-// BillingEnv carries the metered-overage tunables. Defaults are production;
-// override in dev to exercise the overage path without pushing 250k events
-// (e.g. STARTER_INCLUDED_EVENTS=10, OVERAGE_UNIT_EVENTS=10). These MUST match
-// the Node billing config (packages/billing/config) and the Stripe metered
-// price tiers, or the API's 402 boundary and Stripe's invoice will disagree.
-type BillingEnv struct {
-	StarterIncludedEvents      int64 // included events/mo on Starter
-	ProIncludedEvents          int64 // included events/mo on Pro
-	OverageUnitEvents          int64 // billing unit size (events per priced unit)
-	StarterOverageCentsPerUnit int64 // ¢ per unit over the Starter quota
-	ProOverageCentsPerUnit     int64 // ¢ per unit over the Pro quota
-	// No default spend cap: overage is uncapped (billed, never blocked) unless
-	// the org owner opts into an explicit cap (org_billing_state).
+	// AuthEnabled gates API key authentication. Off by default: the server runs
+	// open with a default tenant so a self-hoster can ingest immediately. Set
+	// APIKEY_AUTH=true to require keys minted by the `stonewrit` CLI.
+	AuthEnabled bool
 }
 
 func Load() (*Env, error) {
@@ -61,22 +49,16 @@ func Load() (*Env, error) {
 		Port:        port,
 		LogLevel:    logLevel,
 		PoolMax:     poolMax,
-		Billing: BillingEnv{
-			StarterIncludedEvents:      int64Env("STARTER_INCLUDED_EVENTS", 250_000),
-			ProIncludedEvents:          int64Env("PRO_INCLUDED_EVENTS", 5_000_000),
-			OverageUnitEvents:          int64Env("OVERAGE_UNIT_EVENTS", 1_000),
-			StarterOverageCentsPerUnit: int64Env("STARTER_OVERAGE_CENTS_PER_UNIT", 60),
-			ProOverageCentsPerUnit:     int64Env("PRO_OVERAGE_CENTS_PER_UNIT", 25),
-		},
+		AuthEnabled: boolEnv("APIKEY_AUTH"),
 	}, nil
 }
 
-// int64Env reads a non-negative integer env var, falling back to def.
-func int64Env(name string, def int64) int64 {
-	if v := os.Getenv(name); v != "" {
-		if n, err := strconv.ParseInt(v, 10, 64); err == nil && n >= 0 {
-			return n
-		}
+// boolEnv reports whether an env var is set to a truthy value.
+func boolEnv(name string) bool {
+	switch os.Getenv(name) {
+	case "1", "true", "TRUE", "True", "yes", "on":
+		return true
+	default:
+		return false
 	}
-	return def
 }

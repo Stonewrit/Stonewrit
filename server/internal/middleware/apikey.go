@@ -70,19 +70,22 @@ func bearerFrom(r *http.Request) (string, bool) {
 	return token, true
 }
 
-func classifyAuthError(err error) (status int, code, message string) {
-	switch {
-	case errors.Is(err, auth.ErrInvalidKey):
-		return http.StatusUnauthorized, "invalid_api_key", "API key invalid or revoked."
-	case errors.Is(err, auth.ErrKeyExpired):
-		return http.StatusUnauthorized, "invalid_api_key", "API key has expired."
-	case errors.Is(err, auth.ErrKeyDisabled):
-		return http.StatusUnauthorized, "invalid_api_key", "API key is disabled."
-	case errors.Is(err, auth.ErrKeyNoEnvironment):
-		return http.StatusForbidden, "invalid_api_key", "API key is not bound to an environment."
-	default:
-		return http.StatusInternalServerError, "internal_error", "An internal error occurred."
+// InjectScope returns middleware that places a fixed scope on every request. It
+// is used when authentication is disabled so the downstream handlers, which all
+// read auth.FromContext, are unchanged.
+func InjectScope(ac *auth.Context) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			next.ServeHTTP(w, r.WithContext(auth.WithContext(r.Context(), ac)))
+		})
 	}
+}
+
+func classifyAuthError(err error) (status int, code, message string) {
+	if errors.Is(err, auth.ErrInvalidKey) {
+		return http.StatusUnauthorized, "invalid_api_key", "API key invalid or revoked."
+	}
+	return http.StatusInternalServerError, "internal_error", "An internal error occurred."
 }
 
 type errorEnvelope struct {
