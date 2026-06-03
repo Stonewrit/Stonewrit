@@ -26,6 +26,10 @@ jobs:
         run: go test -race -coverprofile=coverage.out ./...
       - name: Conformance vectors must be frozen
         run: go test ./core/ -run TestGoldenVectors
+      - name: Generated query code is reproducible
+        run: |
+          go run github.com/sqlc-dev/sqlc/cmd/sqlc@v1.31.1 generate
+          git diff --exit-code server/internal/queries/gen
 
   integration:
     name: integration (postgres)
