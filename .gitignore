@@ -1,0 +1,26 @@
+# Secrets and local environment. Never commit these.
+.env
+.env.*
+!.env.example
+
+# Build output
+/bin/
+/dist/
+*.exe
+
+# Test and coverage artifacts
+*.test
+*.out
+coverage.out
+coverage.html
+/fuzz/
+
+# Editor and OS files
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Go workspace files
+go.work
+go.work.sum

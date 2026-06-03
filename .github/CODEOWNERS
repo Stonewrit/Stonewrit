@@ -1,0 +1,10 @@
+# Default owners for everything in the repo.
+*       @stonewrit/maintainers
+
+# The frozen trust surface. Changes here affect every chain ever produced and
+# need careful review.
+/core/      @stonewrit/maintainers
+/spec/      @stonewrit/maintainers
+
+# Ruleset contributions get a compliance review.
+/classify/  @stonewrit/maintainers
